@@ -1,0 +1,16 @@
+name: helipad
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.11
+  - spyder
+  - jupyterlab
+  - pip
+  - pip:
+      - numpy
+      - opencv-python
+      - matplotlib
+      - pandas
+      - ultralytics
