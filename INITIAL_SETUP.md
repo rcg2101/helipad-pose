@@ -14,7 +14,7 @@ Esta parte é feita **apenas pela pessoa que cria inicialmente o ambiente e o re
 
 Instalar:
 
-- Anaconda/Miniconda
+- Anaconda ou Miniconda
 - Git for Windows
 - Conta no GitHub
 
@@ -140,7 +140,7 @@ Instalar:
 - Git for Windows
 - Conta GitHub
 
-Configurar o Git:
+Configurar o Git (terminal ou Anaconda PowerShell Prompt):
 
 ```bash
 git config --global user.name "O Teu Nome"
