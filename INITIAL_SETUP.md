@@ -48,10 +48,16 @@ python -c "import torch; print(torch.cuda.is_available())"
 
 ## 1.3. Criar o repositório
 
+Este projeto está no repositório:
+
+```text
+https://github.com/rcg2101/helipad-pose
+```
+
 No GitHub:
 
 1. **New repository**
-2. Escolher um nome, por exemplo `heli-pose`
+2. Escolher um nome, por exemplo `helipad-pose`
 3. Adicionar `README.md`
 4. Adicionar `.gitignore` para Python
 5. Escolher público/privado
@@ -60,14 +66,14 @@ Clonar:
 
 ```bash
 cd C:\dev
-git clone https://github.com/USER/heli-pose.git
-cd heli-pose
+git clone https://github.com/rcg2101/helipad-pose.git
+cd helipad-pose
 ```
 
 Criar a estrutura:
 
 ```text
-heli-pose/
+helipad-pose/
 ├── data/              # dataset — NÃO vai para o Git
 ├── src/
 │   ├── classical/     # OpenCV + solvePnP
@@ -152,8 +158,8 @@ git config --global core.autocrlf true
 
 ```bash
 cd C:\dev
-git clone https://github.com/USER/heli-pose.git
-cd heli-pose
+git clone https://github.com/rcg2101/helipad-pose.git
+cd helipad-pose
 ```
 
 ## 2.3. Criar o ambiente
