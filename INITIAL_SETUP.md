@@ -149,8 +149,8 @@ Instalar:
 Configurar o Git (terminal ou Anaconda PowerShell Prompt):
 
 ```bash
-git config --global user.name "O Teu Nome"
-git config --global user.email "o.teu@email.pt"
+git config --global user.name O_Teu_Nome
+git config --global user.email o-teu@email.pt
 git config --global core.autocrlf true
 ```
 
@@ -164,8 +164,7 @@ cd helipad-pose
 
 ## 2.3. Criar o ambiente
 
-Cada pessoa cria o seu próprio ambiente local a partir do `environment.yml`:
-
+Cada pessoa cria o seu próprio ambiente local a partir do `environment.yml` (tem de ser corrido no Anaconda Powershell Prompt ou Miniconda Prompt): 
 ```bash
 conda env create -f environment.yml
 conda activate helipad
@@ -211,9 +210,25 @@ conda env update -f environment.yml --prune
 
 ---
 
+
 # 3. Fluxo diário de trabalho
 
-Depois da configuração inicial, **não é preciso recriar o ambiente**.
+Depois da configuração inicial, **não é preciso recriar o ambiente**. Para equipas pequenas, o fluxo diário reduz-se a 3 passos simples:
+
+### 1. Iniciar o dia (Sincronizar localmente)
+Abrir o Anaconda / Miniconda Prompt e garantir que tens a versão mais recente do código:
+```bash
+conda activate helipad
+git status
+git pull origin main
+```
+3. Para dar upload, é fazer
+```bash
+git add .
+git commit -m "escreevr mensagem dentro das aspas"
+git push
+```
+ou, se quiserem usar branches: 
 
 ## 3.1. Começar uma tarefa
 
