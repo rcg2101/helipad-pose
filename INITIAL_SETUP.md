@@ -74,7 +74,7 @@ Criar a estrutura:
 
 ```text
 helipad-pose/
-├── data/              # dataset — NÃO vai para o Git
+├── data/              # dataset — supostamente NÃO vai para o Git, mas por enquanto ...
 ├── src/
 │   ├── classical/     # OpenCV + solvePnP
 │   ├── yolo/          # treino e inferência YOLO
@@ -88,14 +88,15 @@ helipad-pose/
 ### `.gitignore`
 
 ```gitignore
-data/
+#data depois deve ser melhor tirar, vamos ver
+#data/
 runs/
 *.pt
 __pycache__/
 .ipynb_checkpoints/
 ```
 
-O dataset e os pesos treinados (`.pt`) são partilhados por **Drive/OneDrive/etc.**, não pelo Git.
+O dataset (vamos ver) e os pesos treinados (`.pt`) são partilhados por **Drive/OneDrive/etc.**, não pelo Git.
 
 ### `environment.yml`
 
