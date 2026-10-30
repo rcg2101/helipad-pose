@@ -1,9 +1,7 @@
 # Treino YOLO-Pose
 
-O treino está em [train_pose.py](./train_pose.py). Abre esse ficheiro no VS Code
-ou Spyder e executa-o como um script Python normal (por exemplo, **Run Python
-File** no VS Code). Não é necessário executar comandos YOLO no terminal. O
-script usa o `data.yaml` existente; não o cria nem altera.
+O treino está em [train_pose.py](./train_pose.py). Executar como um script Python normal. O
+script usa o `data.yaml` existente.
 
 Por omissão, usa:
 
