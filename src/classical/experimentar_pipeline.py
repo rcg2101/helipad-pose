@@ -1,13 +1,12 @@
 """
-Exploracao passo a passo da segmentacao classica do H.
+Exploracao manual da deteccao classica do H, passo a passo.
 
 Abre este ficheiro no VS Code ou Spyder e executa-o diretamente.
-Altera IMAGE_PATH para experimentar outra fotografia. Nao precisa de
-argumentos nem de comandos no terminal.
+Altera IMAGE_PATH para escolher outra fotografia.
 
-O script guarda cada resultado em src/classical/classical_out/experimento/
-e mostra-os, um de cada vez, na mesma janela. Carrega numa tecla para avancar
-ou em q para fechar a janela.
+No fim de cada operacao, o resultado abre na mesma janela. Carrega numa tecla
+para avancar. A deteccao final e feita pela pipeline classica e mostra os
+vertices numerados. Nada e guardado a menos que guardar_imagens seja True.
 """
 
 from pathlib import Path
@@ -15,39 +14,60 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+from classical_h import detect
+
 
 ROOT = Path(__file__).resolve().parents[2]
 IMAGE_PATH = ROOT / "data" / "dataset" / "images" / "val" / "synth00__00001.jpg"
 OUTPUT_DIR = Path(__file__).resolve().parent / "classical_out" / "experimento"
+guardar_imagens = False
+window_name = "Exploracao manual da pipeline classica"
+
+if guardar_imagens:
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 
-# 1. Carregar a imagem escolhida.
+# Passo 1: carregar e visualizar a fotografia original.
 image = cv2.imread(str(IMAGE_PATH))
 if image is None:
     raise FileNotFoundError(f"Nao foi possivel abrir a imagem: {IMAGE_PATH}")
+cv2.imshow(window_name, image)
+cv2.waitKey(0)
+if guardar_imagens and not cv2.imwrite(str(OUTPUT_DIR / "01_original.png"), image):
+    raise OSError("Nao foi possivel guardar 01_original.png")
 
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
-
-# 2. Converter para tons de cinzento: simplifica a comparacao de intensidade.
+# Passo 2: converter para cinzento para trabalhar apenas com intensidade.
 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+cv2.imshow(window_name, gray)
+cv2.waitKey(0)
+if guardar_imagens and not cv2.imwrite(str(OUTPUT_DIR / "02_cinzento.png"), gray):
+    raise OSError("Nao foi possivel guardar 02_cinzento.png")
 
 
-# 3. Reduzir ruido antes de criar a mascara.
+# Passo 3: aplicar um desfoque ligeiro para reduzir ruido.
 blurred = cv2.GaussianBlur(gray, (5, 5), 1.0)
+cv2.imshow(window_name, blurred)
+cv2.waitKey(0)
+if guardar_imagens and not cv2.imwrite(str(OUTPUT_DIR / "03_desfoque.png"), blurred):
+    raise OSError("Nao foi possivel guardar 03_desfoque.png")
 
 
-# 4. Criar uma mascara com Otsu, assumindo tinta escura num fundo claro.
-_, otsu_dark = cv2.threshold(
+# Passo 4: criar uma mascara de tinta escura com Otsu.
+_, otsu_mask = cv2.threshold(
     blurred,
     0,
     255,
     cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU,
 )
+cv2.imshow(window_name, otsu_mask)
+cv2.waitKey(0)
+if guardar_imagens and not cv2.imwrite(str(OUTPUT_DIR / "04_otsu.png"), otsu_mask):
+    raise OSError("Nao foi possivel guardar 04_otsu.png")
 
 
-# 5. Criar uma mascara adaptativa, util quando a iluminacao varia na imagem.
-adaptive_dark = cv2.adaptiveThreshold(
+# Passo 5: criar uma mascara adaptativa para lidar com iluminacao desigual.
+adaptive_mask = cv2.adaptiveThreshold(
     blurred,
     255,
     cv2.ADAPTIVE_THRESH_MEAN_C,
@@ -55,63 +75,53 @@ adaptive_dark = cv2.adaptiveThreshold(
     51,
     7,
 )
+cv2.imshow(window_name, adaptive_mask)
+cv2.waitKey(0)
+if guardar_imagens and not cv2.imwrite(
+    str(OUTPUT_DIR / "05_adaptativa.png"), adaptive_mask
+):
+    raise OSError("Nao foi possivel guardar 05_adaptativa.png")
 
 
-# 6. Remover pequenos pontos isolados com abertura morfologica.
+# Passo 6: remover pequenos pontos isolados da mascara de Otsu.
 kernel = np.ones((3, 3), dtype=np.uint8)
-otsu_clean = cv2.morphologyEx(otsu_dark, cv2.MORPH_OPEN, kernel)
+clean_mask = cv2.morphologyEx(otsu_mask, cv2.MORPH_OPEN, kernel)
+cv2.imshow(window_name, clean_mask)
+cv2.waitKey(0)
+if guardar_imagens and not cv2.imwrite(
+    str(OUTPUT_DIR / "06_mascara_limpa.png"), clean_mask
+):
+    raise OSError("Nao foi possivel guardar 06_mascara_limpa.png")
 
 
-# 7. Encontrar e desenhar os contornos da mascara de Otsu limpa.
+# Passo 7: obter os contornos da mascara e desenha-los sobre a fotografia.
 contours, hierarchy = cv2.findContours(
-    otsu_clean.copy(),
+    clean_mask.copy(),
     cv2.RETR_CCOMP,
-    cv2.CHAIN_APPROX_SIMPLE,
+    cv2.CHAIN_APPROX_NONE,
 )
-contour_view = image.copy()
-cv2.drawContours(contour_view, contours, -1, (0, 200, 255), 1)
+contour_image = image.copy()
+cv2.drawContours(contour_image, contours, -1, (0, 200, 255), 1)
+cv2.imshow(window_name, contour_image)
+cv2.waitKey(0)
+if guardar_imagens and not cv2.imwrite(
+    str(OUTPUT_DIR / "07_contornos.png"), contour_image
+):
+    raise OSError("Nao foi possivel guardar 07_contornos.png")
 
 
-# Guarda todas as fases para comparar, mesmo que se feche a janela antes do fim.
-steps = [
-    ("01_original.png", "1 - Original", image),
-    ("02_cinzento.png", "2 - Tons de cinzento", gray),
-    ("03_desfoque.png", "3 - Desfoque gaussiano", blurred),
-    ("04_otsu.png", "4 - Mascara Otsu (tinta escura)", otsu_dark),
-    ("05_adaptativa.png", "5 - Mascara adaptativa", adaptive_dark),
-    ("06_otsu_limpa.png", "6 - Otsu apos abertura morfologica", otsu_clean),
-    ("07_contornos.png", "7 - Contornos da mascara Otsu", contour_view),
-]
-
-for filename, title, result in steps:
-    output_path = OUTPUT_DIR / filename
-    if not cv2.imwrite(str(output_path), result):
-        raise OSError(f"Nao foi possivel guardar o resultado: {output_path}")
-
-print(f"Imagem: {IMAGE_PATH}")
-print(f"Mascaras e resultados guardados em: {OUTPUT_DIR}")
-print(f"Contornos encontrados: {len(contours)}")
-print("Na janela: qualquer tecla avanca; q fecha.")
-
-window_name = "Exploracao da pipeline classica"
-cv2.namedWindow(window_name, cv2.WINDOW_NORMAL)
-cv2.resizeWindow(window_name, 1000, 650)
-
-for _, title, result in steps:
-    display = result
-    if result.ndim == 2:
-        display = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
-    cv2.putText(
-        display,
-        title,
-        (12, 30),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.8,
-        (0, 255, 255),
-        2,
-    )
-    cv2.imshow(window_name, display)
-    if cv2.waitKey(0) & 0xFF == ord("q"):
-        break
+# Passo 8: executar a deteccao completa, validar o H e numerar os vertices.
+# A funcao reutilizada evita duplicar a correspondencia geometrica da pipeline.
+detection = detect(image)
+detection_image = detection["views"][-1][1].copy()
+cv2.imshow(window_name, detection_image)
+cv2.waitKey(0)
+if guardar_imagens and not cv2.imwrite(
+    str(OUTPUT_DIR / "08_deteccao_numerada.png"), detection_image
+):
+    raise OSError("Nao foi possivel guardar 08_deteccao_numerada.png")
 
 cv2.destroyAllWindows()
+print(f"H detetado: {'sim' if detection['found'] else 'nao'}")
+if guardar_imagens:
+    print(f"Passos guardados em: {OUTPUT_DIR}")

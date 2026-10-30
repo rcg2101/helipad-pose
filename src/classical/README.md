@@ -4,11 +4,13 @@ O script `classical_h.py` deteta o H por segmentação e contornos, sem YOLO. A
 janela mostra um mosaico com a imagem original, imagem em cinzento, máscaras
 Otsu/adaptativas, contornos, máscara do H e resultado.
 
-Para explorar as operações OpenCV passo a passo numa fotografia específica,
-abre e executa `experimentar_pipeline.py` no VS Code ou Spyder. Altera
-`IMAGE_PATH` no início do ficheiro para escolher outra imagem. Cada fase é
-guardada em `src/classical/classical_out/experimento/` e aparece numa janela
-individual; qualquer tecla avança e `q` fecha.
+Para explorar as operações OpenCV numa fotografia, abre e executa
+`experimentar_pipeline.py` no VS Code ou Spyder. Altera `IMAGE_PATH` no início
+do ficheiro. Cada passo manual abre na mesma janela; carrega numa tecla para
+avançar. No fim, a deteção clássica completa mostra o H com os 12 vértices
+numerados. Por omissão, nada é guardado. Para guardar os passos em
+`src/classical/classical_out/experimento/`, muda `guardar_imagens = False` para
+`guardar_imagens = True`.
 
 ## Pipeline
 
