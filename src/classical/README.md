@@ -4,6 +4,12 @@ O script `classical_h.py` deteta o H por segmentação e contornos, sem YOLO. A
 janela mostra um mosaico com a imagem original, imagem em cinzento, máscaras
 Otsu/adaptativas, contornos, máscara do H e resultado.
 
+Para explorar as operações OpenCV passo a passo numa fotografia específica,
+abre e executa `experimentar_pipeline.py` no VS Code ou Spyder. Altera
+`IMAGE_PATH` no início do ficheiro para escolher outra imagem. Cada fase é
+guardada em `src/classical/classical_out/experimento/` e aparece numa janela
+individual; qualquer tecla avança e `q` fecha.
+
 ## Pipeline
 
 1. Converte cada frame para cinzento e aplica um desfoque ligeiro.

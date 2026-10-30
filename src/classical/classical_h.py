@@ -3,6 +3,7 @@
 
 Como correr a partir da raiz do projeto:
     python src/classical/classical_h.py image "C:\\caminho\\para\\foto.jpg"
+    python src/classical/classical_h.py image "C:\\caminho\\para\\foto.jpg" --save-dir classical_out 
     python src/classical/classical_h.py image data/dataset/images/val
     python src/classical/classical_h.py video --source 0
     python src/classical/classical_h.py video --source "C:\\caminho\\para\\video.mp4"
