@@ -1,7 +1,7 @@
 """
 Exploracao manual da deteccao classica do H, passo a passo.
 
-Abre este ficheiro no VS Code ou Spyder e executa-o diretamente.
+Abrir este ficheiro no VS Code ou Spyder e executa-o diretamente.
 Altera IMAGE_PATH para escolher outra fotografia.
 
 No fim de cada operacao, o resultado abre na mesma janela. Carrega numa tecla
