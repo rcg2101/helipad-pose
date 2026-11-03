@@ -8,10 +8,18 @@ BASE = Path(__file__).resolve().parent
 cam = np.load(BASE / "camera.npz")
 K, dist = cam["K"], cam["dist"]
 
-MODEL = r"C:\caminho\para\best.pt"            # ADAPTAR
-IMG = BASE.parent.parent / "data" / "teste" / "foto1.jpg"   # ADAPTAR
+MODEL = r"C:\Users\Asus\helipad-pose\models\best.pt"
+IMG = BASE.parent.parent / "data" / "teste" / "foto1.jpeg"   # ADAPTAR
+
+for p in (MODEL, IMG):
+    if not Path(p).exists():
+        raise FileNotFoundError(f"Não encontrei: {p}")
+
 
 model = YOLO(MODEL)
+print("tarefa:", model.task)
+print("keypoints (n, dim):", model.model.kpt_shape)
+print("classes:", model.names)
 img = cv.imread(str(IMG))
 h, w = img.shape[:2]
 if (w, h) != (1200, 1600):
