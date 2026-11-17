@@ -4,7 +4,8 @@ data/dataset/*
 !data/dataset/data.yaml
 data/dataset_v2/*
 !data/dataset_v2/data.yaml
-runs/
+runs/*
+!runs/train
 #*.pt
 __pycache__/
 .ipynb_checkpoints/
