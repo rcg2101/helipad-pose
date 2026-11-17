@@ -1,6 +1,5 @@
 import numpy as np
 import cv2 as cv
-import glob
 from pathlib import Path
 
 # Critério de paragem do refinamento sub-pixel
@@ -21,9 +20,11 @@ imgpoints = []   # pontos 2D na imagem
 BASE = Path(__file__).resolve().parent        # ...\src\coelho
 CALIB_DIR = BASE.parent.parent / "data" / "calib"   # ...\helipad-pose\data\calib
 
-images = []
-for ext in ("*.jpg", "*.JPG", "*.jpeg", "*.png"):
-    images += glob.glob(str(CALIB_DIR / ext))
+images = sorted(
+    image
+    for pattern in ("*.jpg", "*.JPG", "*.jpeg", "*.png")
+    for image in CALIB_DIR.glob(pattern)
+)
 
 print("pasta de calibração:", CALIB_DIR)
 print("imagens encontradas:", len(images))
@@ -31,12 +32,8 @@ print("imagens encontradas:", len(images))
 if not images:
     raise FileNotFoundError(f"Nenhuma imagem encontrada em {CALIB_DIR}")
 
-import os
-print("pasta atual:", os.getcwd())
-print("imagens encontradas:", len(images))
-
-for fname in images:
-    img = cv.imread(fname)
+for image_path in images:
+    img = cv.imread(str(image_path))
     gray = cv.cvtColor(img, cv.COLOR_BGR2GRAY)
 
     ret, corners = cv.findChessboardCorners(gray, PATTERN, None)
@@ -51,7 +48,7 @@ for fname in images:
         cv.imshow('img', img)
         cv.waitKey(500)
     else:
-        print("sem tabuleiro:", fname)
+        print("sem tabuleiro:", image_path)
 cv.destroyAllWindows()
 
 ret, mtx, dist, rvecs, tvecs = cv.calibrateCamera(

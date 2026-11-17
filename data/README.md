@@ -1,6 +1,11 @@
 # helipad-pose
 
-O treino principal usa `dataset/data.yaml` .
+Os ficheiros `dataset/data.yaml` e `dataset_v2/data.yaml` são portáteis: os
+caminhos de treino e validação são relativos à pasta do respetivo YAML. Os dados
+(imagens e labels) não são versionados; cada pessoa deve colocá-los nas pastas
+indicadas pelo YAML que pretende usar. Se houver um conjunto de teste, adiciona
+`test: images/test` ao YAML.
+
 As anotações mantêm sempre a mesma numeração para cada ponto, incluindo os
 pontos à esquerda e à direita. Como o treino aplica inversões horizontais
 (`fliplr=0.5`), `flip_idx` em `dataset/data.yaml` indica ao YOLO que índices

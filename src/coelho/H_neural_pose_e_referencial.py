@@ -6,7 +6,12 @@ from ultralytics import YOLO
 from helipad_pose import estimate_pose
 
 BASE = Path(__file__).resolve().parent
-model = YOLO(BASE.parent.parent / "models" / "best.pt")
+ROOT = BASE.parents[1]
+MODEL_PATH = ROOT / "runs" / "train" / "y26-1-db-1" / "weights" / "best.pt"
+if not MODEL_PATH.is_file():
+    raise FileNotFoundError(f"Não encontrei os pesos do modelo: {MODEL_PATH}")
+
+model = YOLO(str(MODEL_PATH))
 
 cap = cv.VideoCapture(0, cv.CAP_DSHOW)
 cap.set(cv.CAP_PROP_FRAME_WIDTH, 1280)

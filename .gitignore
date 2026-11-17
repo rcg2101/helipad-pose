@@ -1,4 +1,11 @@
-data/
+data/*
+!data/README.md
+!data/dataset/
+data/dataset/*
+!data/dataset/data.yaml
+!data/dataset_v2/
+data/dataset_v2/*
+!data/dataset_v2/data.yaml
 runs/
 #*.pt
 __pycache__/

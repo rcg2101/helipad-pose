@@ -66,8 +66,11 @@ estar no formato YOLO-Pose; os scripts não preparam nem modificam o dataset.
 Escolhe os pesos da experiência pretendida:
 
 ```powershell
-yolo predict model="runs\train\<experiencia>\weights\best.pt" source="C:\caminho\para\a_foto.jpg" project="runs\predict" name="foto"
+yolo predict model="runs/train/<experiencia>/weights/best.pt" source="data/caminho/relativo/para/a_foto.jpg" project="runs/predict" name="foto"
 ```
+
+Executa o comando a partir da raiz do projeto; substitui o caminho da imagem
+por um ficheiro disponível no teu checkout.
 
 Para a webcam:
 

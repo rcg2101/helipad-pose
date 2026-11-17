@@ -29,8 +29,6 @@ git config --global core.autocrlf true
 ## 1.2. Criar o ambiente
 
 ```bash
-cd C:\dev
-
 conda create -n helipad python=3.11 spyder jupyterlab -y
 conda activate helipad
 
@@ -62,10 +60,9 @@ No GitHub:
 4. Adicionar `.gitignore` para Python
 5. Escolher público/privado
 
-Clonar:
+Clonar a partir da pasta onde queres guardar o projeto:
 
 ```bash
-cd C:\dev
 git clone https://github.com/rcg2101/helipad-pose.git
 cd helipad-pose
 ```
@@ -158,7 +155,6 @@ git config --global core.autocrlf true
 ## 2.2. Clonar o projeto
 
 ```bash
-cd C:\dev
 git clone https://github.com/rcg2101/helipad-pose.git
 cd helipad-pose
 ```

@@ -5,22 +5,25 @@ from ultralytics import YOLO
 from helipad_pose import estimate_pose
 
 BASE = Path(__file__).resolve().parent
-cam = np.load(BASE / "camera.npz")
+ROOT = BASE.parents[1]
+CAMERA_PATH = BASE / "camera.npz"
+MODEL_PATH = ROOT / "runs" / "train" / "y26-1-db-1" / "weights" / "best.pt"
+IMAGE_PATH = ROOT / "data" / "teste_beta" / "H_teste_1.png"
+
+for path in (CAMERA_PATH, MODEL_PATH, IMAGE_PATH):
+    if not path.is_file():
+        raise FileNotFoundError(f"Não encontrei: {path}")
+
+cam = np.load(CAMERA_PATH)
 K, dist = cam["K"], cam["dist"]
 
-MODEL = r"C:\Users\Asus\helipad-pose\models\best.pt"
-IMG = BASE.parent.parent / "data" / "teste" / "foto1.jpeg"   # ADAPTAR
-
-for p in (MODEL, IMG):
-    if not Path(p).exists():
-        raise FileNotFoundError(f"Não encontrei: {p}")
-
-
-model = YOLO(MODEL)
+model = YOLO(str(MODEL_PATH))
 print("tarefa:", model.task)
 print("keypoints (n, dim):", model.model.kpt_shape)
 print("classes:", model.names)
-img = cv.imread(str(IMG))
+img = cv.imread(str(IMAGE_PATH))
+if img is None:
+    raise OSError(f"Não foi possível ler a imagem: {IMAGE_PATH}")
 h, w = img.shape[:2]
 if (w, h) != (1200, 1600):
     print(f"AVISO: imagem {w}x{h}, o K foi calibrado para 1200x1600")

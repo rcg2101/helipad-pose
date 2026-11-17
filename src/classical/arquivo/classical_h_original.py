@@ -2,15 +2,15 @@
 """Deteção clássica do H e visualização das fases intermédias.
 
 Como correr a partir da raiz do projeto:
-    python src/classical/arquivo/classical_h_original.py image "C:\\caminho\\para\\foto.jpg"
-    python src/classical/arquivo/classical_h_original.py image "C:\\caminho\\para\\foto.jpg" --save-dir classical_out 
+    python src/classical/arquivo/classical_h_original.py image data/teste_beta/H_teste_1.png
+    python src/classical/arquivo/classical_h_original.py image data/teste_beta/H_teste_1.png --save-dir classical_out
     python src/classical/arquivo/classical_h_original.py image data/dataset/images/val
     python src/classical/arquivo/classical_h_original.py video --source 0
-    python src/classical/arquivo/classical_h_original.py video --source "C:\\caminho\\para\\video.mp4"
+    python src/classical/arquivo/classical_h_original.py video --source data/caminho/relativo/para/video.mp4
 
 Os mosaicos das imagens são guardados por omissão em
     src/classical/arquivo/classical_out/
-Para escolher outra pasta, acrescentar `--save-dir "C:\\caminho\\para\\pasta"`.
+Para escolher outra pasta, acrescentar `--save-dir caminho/relativo/para/pasta`.
 Na janela: m/0 mostra o mosaico, 1-9 seleciona fases, [/ ] percorre todas as
 fases e q fecha. A webcam/vídeo é apenas visualizada, não é gravada.
 
