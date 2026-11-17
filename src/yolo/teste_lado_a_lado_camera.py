@@ -1,8 +1,15 @@
+from pathlib import Path
+
 import cv2
 from ultralytics import YOLO
 
-yolo26 = YOLO(r"C:\Users\rodri\dev\helipad-pose\runs\pose\h12-3\weights\best.pt")
-yolo11 = YOLO(r"C:\Users\rodri\dev\helipad-pose\runs\pose\runs\pose\h12\weights\best.pt")
+ROOT = Path(__file__).resolve().parents[2]
+yolo26 = YOLO(
+    str(ROOT / "runs" / "train" / "y26-1-db-1" / "weights" / "best.pt")
+)
+yolo11 = YOLO(
+    str(ROOT / "runs" / "train" / "y11-1-db-1" / "weights" / "best.pt")
+)
 
 camera = cv2.VideoCapture(0)
 if not camera.isOpened():

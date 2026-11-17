@@ -1,44 +1,16 @@
 #!/usr/bin/env python3
-"""Deteção clássica do H e visualização das fases intermédias.
+"""Deteção do H com limiarização adaptativa larga na webcam."""
 
-Como correr a partir da raiz do projeto:
-    python src/classical/classical_h.py image "C:\\caminho\\para\\foto.jpg"
-    python src/classical/classical_h.py image "C:\\caminho\\para\\foto.jpg" --save-dir classical_out 
-    python src/classical/classical_h.py image data/dataset/images/val
-    python src/classical/classical_h.py video --source 0
-    python src/classical/classical_h.py video --source "C:\\caminho\\para\\video.mp4"
-
-Os mosaicos das imagens são guardados por omissão em
-    src/classical/classical_out/
-Para escolher outra pasta, acrescentar `--save-dir "C:\\caminho\\para\\pasta"`.
-Na janela: m/0 mostra o mosaico, 1-9 seleciona fases, [/ ] percorre todas as
-fases e q fecha. A webcam/vídeo é apenas visualizada, não é gravada.
-
-Pipeline:
-    1. Converte cada frame para cinzento e aplica um desfoque ligeiro.
-    2. Cria máscaras binárias com Otsu e limiarização adaptativa, para tinta
-       escura ou clara.
-    3. Procura contornos que possam formar o anel e valida forma, tamanho,
-       proporção e concentricidade das elipses.
-    4. Procura o H dentro do anel; se o anel estiver cortado ou não for
-       detetado, tenta encontrar o H pelo contorno isolado.
-    5. Ajusta uma homografia entre os 12 vértices do modelo do H e o contorno
-       encontrado. A simetria de 180 graus é resolvida escolhendo a orientação
-       em que o topo do H aponta mais para cima na imagem.
-    6. Calcula a sobreposição (IoU) entre a máscara prevista e a segmentada;
-       aceita a deteção se atingir o limiar configurado.
-    7. Mostra o original, cinzento, máscaras, contornos, máscara do H e
-       resultado com os 12 vértices numerados.
-"""
-
-import argparse
-import ctypes
 import math
-import sys
-from pathlib import Path
+import time
 
 import cv2
 import numpy as np
+
+WEBCAM_INDEX = 0
+MIN_RING_PX = 24
+MIN_H_AREA = 60
+MIN_IOU = 0.80
 
 
 # The 12 outline vertices, in the same order used by the YOLO-pose dataset.
@@ -50,55 +22,27 @@ H_POINTS = np.array(
     ],
     dtype=np.float32,
 )
-IMAGE_EXTENSIONS = {".bmp", ".jpeg", ".jpg", ".png", ".tif", ".tiff"}
-DEFAULT_OUTPUT = Path(__file__).resolve().parent / "classical_out"
 
 
-def _odd(value):
-    value = int(round(value))
-    return value if value % 2 else value + 1
-
-
-def threshold_masks(gray, polarity):
-    """Create Otsu and adaptive masks; foreground (ink) is white."""
-    height, width = gray.shape
-    max_block = min(height, width)
+def adaptive_wide_mask(gray):
+    max_block = min(gray.shape)
     if max_block % 2 == 0:
         max_block -= 1
     if max_block < 3:
         raise ValueError("A imagem tem de ter pelo menos 3 px em cada dimensão.")
 
-    block_sizes = {
-        "Adaptativa fina": min(max_block, max(15, _odd(max_block / 24))),
-        "Adaptativa larga": min(max_block, max(31, _odd(max_block / 6))),
-    }
-    if block_sizes["Adaptativa fina"] == block_sizes["Adaptativa larga"]:
-        block_sizes["Adaptativa larga"] = max_block
-
-    polarities = ("dark", "light") if polarity == "auto" else (polarity,)
-    for mode in polarities:
-        invert = mode == "dark"
-        threshold_type = cv2.THRESH_BINARY_INV if invert else cv2.THRESH_BINARY
-        suffix = "tinta escura" if invert else "tinta clara"
-
-        _, otsu = cv2.threshold(
-            gray, 0, 255, threshold_type | cv2.THRESH_OTSU
-        )
-        yield f"Otsu ({suffix})", otsu
-
-        adaptive_type = (
-            cv2.THRESH_BINARY_INV if invert else cv2.THRESH_BINARY
-        )
-        for name, block_size in block_sizes.items():
-            mask = cv2.adaptiveThreshold(
-                gray,
-                255,
-                cv2.ADAPTIVE_THRESH_MEAN_C,
-                adaptive_type,
-                block_size,
-                7 if name == "Adaptativa larga" else 5,
-            )
-            yield f"{name} ({suffix})", mask
+    block_size = min(max_block, max(31, int(round(max_block / 6))))
+    if block_size % 2 == 0:
+        block_size += 1
+    block_size = min(block_size, max_block)
+    return cv2.adaptiveThreshold(
+        gray,
+        255,
+        cv2.ADAPTIVE_THRESH_MEAN_C,
+        cv2.THRESH_BINARY_INV,
+        block_size,
+        7,
+    )
 
 
 def _ellipse_residual(contour, ellipse):
@@ -379,42 +323,14 @@ def _draw_keypoints(image, points):
         )
 
 
-def detect(frame, polarity="auto", blur=1.0, min_ring_px=24, min_h_area=60, min_iou=0.75):
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY) if frame.ndim == 3 else frame.copy()
-    if blur > 0:
-        gray = cv2.GaussianBlur(gray, (0, 0), blur)
-
-    masks = list(threshold_masks(gray, polarity))
-    analyses = [
-        (name, mask, _analyse_mask(mask, min_ring_px, min_h_area))
-        for name, mask in masks
-    ]
-    best = max(
-        analyses,
-        key=lambda item: item[2]["fit"]["iou"] if item[2]["fit"] else 0,
+def detect(frame):
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    blurred = cv2.GaussianBlur(gray, (0, 0), 1.0)
+    details = _analyse_mask(
+        adaptive_wide_mask(blurred), MIN_RING_PX, MIN_H_AREA
     )
-    best_name, best_mask, details = best
     fit = details["fit"]
-    found = fit is not None and fit["iou"] >= min_iou
-
-    contour_view = frame.copy()
-    for index, contour in enumerate(details["contours"]):
-        color = (255, 140, 0)
-        if details["hierarchy"] is not None and details["hierarchy"][index][3] != -1:
-            color = (0, 200, 255)
-        cv2.drawContours(contour_view, [contour], -1, color, 1)
-
-    for ring in details["rings"]:
-        cv2.ellipse(
-            contour_view,
-            cv2.fitEllipse(details["contours"][ring["outer"]]),
-            (0, 255, 0),
-            2,
-            cv2.LINE_AA,
-        )
-    if details["h_contour"] is not None:
-        cv2.drawContours(contour_view, [details["h_contour"]], -1, (0, 0, 255), 2)
-
+    found = fit is not None and fit["iou"] >= MIN_IOU
     result = frame.copy()
     if found:
         cv2.polylines(
@@ -426,233 +342,53 @@ def detect(frame, polarity="auto", blur=1.0, min_ring_px=24, min_h_area=60, min_
             cv2.LINE_AA,
         )
         _draw_keypoints(result, fit["points"])
-        message = f"H detetado | IoU {fit['iou']:.2f} | mascara: {best_name}"
+        message = f"H detetado | IoU {fit['iou']:.2f}"
         color = (0, 255, 0)
     else:
         score = fit["iou"] if fit is not None else 0
-        message = f"H nao detetado | IoU {score:.2f} | mascara: {best_name}"
+        message = f"H nao detetado | IoU {score:.2f}"
         color = (0, 165, 255)
     cv2.putText(result, message, (10, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.65, color, 2)
-
-    views = [
-        ("Original", frame),
-        ("Cinza + blur", gray),
-    ]
-    views.extend((name, mask) for name, mask, _ in analyses)
-    views.extend(
-        [
-            (f"Contornos ({best_name})", contour_view),
-            ("Mascara do H", details["h_mask"]),
-            ("Resultado", result),
-        ]
-    )
-    return {
-        "found": found,
-        "iou": fit["iou"] if fit is not None else 0.0,
-        "points": fit["points"] if found else None,
-        "views": views,
-    }
+    return result
 
 
-def _to_bgr(image):
-    return cv2.cvtColor(image, cv2.COLOR_GRAY2BGR) if image.ndim == 2 else image.copy()
-
-
-def _screen_size():
-    if sys.platform == "win32":
-        user32 = ctypes.windll.user32
-        return user32.GetSystemMetrics(0), user32.GetSystemMetrics(1)
-    return 1280, 720
-
-
-def _make_mosaic(views, tile_width=400, columns=3):
-    screen_width, screen_height = _screen_size()
-    rows = math.ceil(len(views) / columns)
-    tile_width = min(
-        tile_width,
-        max(1, (screen_width - 40) // columns),
-        max(1, int((screen_height - 100) / (rows * 0.62))),
-    )
-    tile_height = int(tile_width * 0.62)
-    tiles = []
-    for index, (name, image) in enumerate(views, 1):
-        image = _to_bgr(image)
-        height, width = image.shape[:2]
-        scale = min(tile_width / width, tile_height / height)
-        resized = cv2.resize(
-            image,
-            (max(1, int(width * scale)), max(1, int(height * scale))),
-            interpolation=cv2.INTER_AREA if scale < 1 else cv2.INTER_LINEAR,
-        )
-        tile = np.full((tile_height, tile_width, 3), 28, dtype=np.uint8)
-        y = (tile_height - resized.shape[0]) // 2
-        x = (tile_width - resized.shape[1]) // 2
-        tile[y:y + resized.shape[0], x:x + resized.shape[1]] = resized
-        title = f"Passo {index} - {name}"
-        cv2.putText(tile, title, (8, 22), cv2.FONT_HERSHEY_SIMPLEX, 0.48, (0, 255, 255), 1)
-        tiles.append(tile)
-
-    while len(tiles) % columns:
-        tiles.append(np.full_like(tiles[0], 28))
-    rows = [
-        np.hstack(tiles[index:index + columns])
-        for index in range(0, len(tiles), columns)
-    ]
-    return np.vstack(rows)
-
-
-def _display(views, selected):
-    if selected == 0:
-        return _make_mosaic(views)
-    index = min(selected - 1, len(views) - 1)
-    image = _to_bgr(views[index][1])
-    cv2.putText(
-        image,
-        f"Passo {index + 1} - {views[index][0]} (m = mosaico)",
-        (10, 26),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.65,
-        (0, 255, 255),
-        2,
-    )
-    return image
-
-
-def _image_files(paths):
-    files = []
-    for item in paths:
-        path = Path(item)
-        if path.is_dir():
-            files.extend(
-                sorted(
-                    file for file in path.iterdir()
-                    if file.suffix.lower() in IMAGE_EXTENSIONS
-                )
-            )
-        else:
-            files.append(path)
-    return files
-
-
-def _process_options(args):
-    return {
-        "polarity": args.polarity,
-        "blur": args.blur,
-        "min_ring_px": args.min_ring_px,
-        "min_h_area": args.min_h_area,
-        "min_iou": args.min_iou,
-    }
-
-
-def show_images(args):
-    files = _image_files(args.paths)
-    if not files:
-        raise FileNotFoundError("Não foram encontradas imagens nos caminhos indicados.")
-
-    save_dir = Path(args.save_dir)
-    if save_dir:
-        save_dir.mkdir(parents=True, exist_ok=True)
-
-    for path in files:
-        frame = cv2.imread(str(path))
-        if frame is None:
-            print(f"Não foi possível ler: {path}")
-            continue
-        detection = detect(frame, **_process_options(args))
-        print(f"{path.name}: {'H detetado' if detection['found'] else 'H não detetado'}")
-        if save_dir:
-            cv2.imwrite(
-                str(save_dir / f"{path.stem}_mascaras.png"),
-                _make_mosaic(detection["views"]),
-            )
-
-        selected = 0
-        while True:
-            cv2.imshow("Detecao classica - imagem", _display(detection["views"], selected))
-            key = cv2.waitKey(0) & 0xFF
-            if key == ord("q"):
-                cv2.destroyAllWindows()
-                return
-            if key in (ord("m"), ord("0")):
-                selected = 0
-                continue
-            if ord("1") <= key <= ord("9"):
-                selected = min(key - ord("0"), len(detection["views"]))
-                continue
-            if key in (ord("]"), ord("n")):
-                selected = (selected + 1) % (len(detection["views"]) + 1)
-                continue
-            if key in (ord("["), ord("b")):
-                selected = (selected - 1) % (len(detection["views"]) + 1)
-                continue
-            break
-    cv2.destroyAllWindows()
-
-
-def _parse_source(source):
-    return int(source) if source.isdecimal() else source
-
-
-def show_video(args):
-    capture = cv2.VideoCapture(_parse_source(args.source))
+def main():
+    capture = cv2.VideoCapture(WEBCAM_INDEX)
     if not capture.isOpened():
-        raise RuntimeError(f"Não foi possível abrir a fonte de vídeo: {args.source}")
+        raise RuntimeError(f"Não foi possível abrir a webcam {WEBCAM_INDEX}.")
 
-    selected = 0
+    last_frame_time = None
+    fps = None
     try:
         while True:
             ok, frame = capture.read()
             if not ok:
                 break
-            detection = detect(frame, **_process_options(args))
-            cv2.imshow("Detecao classica - video", _display(detection["views"], selected))
+            display = detect(frame)
+            fps_text = "FPS: --" if fps is None else f"FPS: {fps:.1f}"
+            cv2.putText(
+                display,
+                fps_text,
+                (10, display.shape[0] - 12),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.65,
+                (0, 255, 255),
+                2,
+            )
+            cv2.imshow("Detecao classica - video", display)
             key = cv2.waitKey(1) & 0xFF
+            now = time.perf_counter()
+            if last_frame_time is not None:
+                elapsed = now - last_frame_time
+                if elapsed > 0:
+                    measured_fps = 1 / elapsed
+                    fps = measured_fps if fps is None else 0.85 * fps + 0.15 * measured_fps
+            last_frame_time = now
             if key == ord("q"):
                 break
-            if key in (ord("m"), ord("0")):
-                selected = 0
-            elif ord("1") <= key <= ord("9"):
-                selected = min(key - ord("0"), len(detection["views"]))
-            elif key in (ord("]"), ord("n")):
-                selected = (selected + 1) % (len(detection["views"]) + 1)
-            elif key in (ord("["), ord("b")):
-                selected = (selected - 1) % (len(detection["views"]) + 1)
     finally:
         capture.release()
         cv2.destroyAllWindows()
-
-
-def add_detection_options(parser):
-    parser.add_argument("--polarity", choices=("dark", "light", "auto"), default="auto")
-    parser.add_argument("--blur", type=float, default=1.0)
-    parser.add_argument("--min-ring-px", type=float, default=24)
-    parser.add_argument("--min-h-area", type=float, default=60)
-    parser.add_argument("--min-iou", type=float, default=0.80)
-
-
-def main():
-    parser = argparse.ArgumentParser(
-        description="Detecao classica do H e visualizacao das mascaras."
-    )
-    subparsers = parser.add_subparsers(dest="command", required=True)
-
-    image_parser = subparsers.add_parser("image", help="Mostrar imagem(ns) e mascaras")
-    image_parser.add_argument("paths", nargs="+", help="Imagem ou pasta de imagens")
-    image_parser.add_argument(
-        "--save-dir",
-        default=str(DEFAULT_OUTPUT),
-        help=f"Pasta para os mosaicos (default: {DEFAULT_OUTPUT})",
-    )
-    add_detection_options(image_parser)
-    image_parser.set_defaults(func=show_images)
-
-    video_parser = subparsers.add_parser("video", help="Mostrar webcam ou ficheiro de video")
-    video_parser.add_argument("--source", default="0", help="Indice da webcam ou caminho do video")
-    add_detection_options(video_parser)
-    video_parser.set_defaults(func=show_video)
-
-    args = parser.parse_args()
-    args.func(args)
 
 
 if __name__ == "__main__":

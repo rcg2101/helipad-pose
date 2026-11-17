@@ -1,10 +1,13 @@
 
+from pathlib import Path
+
 import cv2
 from ultralytics import YOLO
 
 # Load the pretrained YOLO11n Spose estimation model
 # The model detects people and estimates 17 body keypoints
-model = YOLO("yolo11n-pose.pt")
+ROOT = Path(__file__).resolve().parents[2]
+model = YOLO(str(ROOT / "weights" / "pretrained" / "yolo11n-pose.pt"))
 
 # Open the default webcam (camera index 0)
 # CAP_DSHOW selects the DirectShow backend on Windows

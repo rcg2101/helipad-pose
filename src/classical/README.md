@@ -1,60 +1,29 @@
 # Deteção clássica do H
 
-O script `classical_h.py` deteta o H por segmentação e contornos, sem YOLO. A
-janela mostra um mosaico com a imagem original, imagem em cinzento, máscaras
-Otsu/adaptativas, contornos, máscara do H e resultado.
-
-Para explorar as operações OpenCV numa fotografia, abre e executa
-`experimentar_pipeline.py` no VS Code ou Spyder. Altera `IMAGE_PATH` no início
-do ficheiro. Cada passo manual abre na mesma janela; carrega numa tecla para
-avançar. No fim, a deteção clássica completa mostra o H com os 12 vértices
-numerados. Por omissão, nada é guardado. Para guardar os passos em
-`src/classical/classical_out/experimento/`, muda `guardar_imagens = False` para
-`guardar_imagens = True`.
-
-## Pipeline
-
-1. Converte cada frame para cinzento e aplica um desfoque ligeiro.
-2. Cria máscaras binárias com Otsu e limiarização adaptativa para tinta escura
-   ou clara.
-3. Procura o anel nos contornos e valida a sua forma elíptica, proporção e
-   concentricidade.
-4. Procura o H dentro do anel; se não encontrar um anel, tenta detetar o H pelo
-   contorno isolado.
-5. Ajusta uma homografia entre os 12 vértices do modelo e o contorno. Como o H
-   é simétrico a 180°, escolhe a orientação em que o topo aponta mais para cima
-   na imagem.
-6. Calcula a sobreposição entre a máscara prevista e a segmentada; aceita a
-   deteção se a IoU ultrapassar o limiar configurado.
-7. Mostra o original, as máscaras, os contornos e o resultado com os vértices
-   numerados.
-
-Executar a partir da raiz do projeto:
+`classical_h.py` abre diretamente a webcam 0, sem argumentos de terminal:
 
 ```powershell
-python src/classical/classical_h.py image "C:\caminho\para\foto.jpg"
-python src/classical/classical_h.py image data/dataset/images/val
-python src/classical/classical_h.py video --source 0
-python src/classical/classical_h.py video --source "C:\caminho\para\video.mp4"
+python src\classical\classical_h.py
 ```
 
-Os mosaicos de imagens são guardados por omissão em
-`src/classical/classical_out/`. Para escolher outra pasta, usa
-`--save-dir "C:\caminho\para\pasta"`. A visualização de webcam/vídeo não grava
-ficheiros.
+O programa usa uma única máscara adaptativa larga invertida para tinta escura, mostra o
+resultado com os 12 vértices e apresenta os FPS do ciclo. Carrega em `q` para
+fechar. Para usar outra câmara, altera `WEBCAM_INDEX` no início do ficheiro.
 
-Na janela:
+## Pipeline da webcam
 
-- `m` ou `0`: mosaico de todas as fases;
-- `1` a `9`: abre uma fase/máscara individual;
-- `]` ou `n`: próxima fase (incluindo as fases depois da 9);
-- `[` ou `b`: fase anterior;
-- em imagens, outra tecla avança para a próxima imagem;
-- `q`: sair.
+1. Converte cada frame para cinzento e aplica um desfoque ligeiro.
+2. Cria uma máscara adaptativa larga de tinta escura.
+3. Procura o anel e o contorno do H; se o anel não for encontrado, tenta o
+   contorno isolado.
+4. Ajusta a homografia dos 12 vértices do modelo e escolhe a orientação em que
+   o topo do H aponta mais para cima.
+5. Valida a deteção pela IoU e desenha os vértices numerados.
 
-O mosaico ajusta o tamanho das fases à resolução do ecrã e identifica cada
-imagem com o número do passo correspondente.
+## Exploração numa imagem
 
-As opções `--polarity dark|light|auto`, `--blur`, `--min-ring-px`,
-`--min-h-area` e `--min-iou` permitem ajustar a segmentação. `auto` testa
-tinta escura e clara. O valor por omissão de `--min-iou` é 0.80.
+`experimentar_pipeline.py` mostra manualmente as etapas de uma imagem de
+exemplo, também usando apenas a máscara adaptativa larga. Altera `IMAGE_PATH`
+no início para escolher outra imagem. Carrega numa tecla para avançar entre as
+etapas; nada é guardado por omissão. Para guardar as imagens, muda
+`guardar_imagens = False` para `True`.

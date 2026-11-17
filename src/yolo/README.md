@@ -1,69 +1,81 @@
-# Treino YOLO-Pose
+# Modelos e execuções YOLO-Pose
 
-O treino está em [train_pose.py](./train_pose.py). Executar como um script Python normal. O
-script usa o `data.yaml` existente.
+## Organização dos ficheiros
+
+- `weights/pretrained/`: pesos base, sem treino neste projeto.
+- `runs/train/<experiencia>/`: resultados completos de cada treino, incluindo
+  `weights/best.pt`, `weights/last.pt`, métricas, gráficos e argumentos.
+- `runs/predict/<experiencia>/`: imagens/vídeos anotados de cada inferência.
+- `models/`: pesos escolhidos para uso geral ou integração noutros scripts.
+
+Os pesos de uma execução ficam junto dos resultados que os produziram. Copiar um
+`best.pt` para `models/` é opcional; não apagues a execução de origem.
+
+## Pesos e histórico
+
+- YOLO11n-Pose pré-treino: `weights/pretrained/yolo11n-pose.pt`
+- YOLO26n-Pose pré-treino: `weights/pretrained/yolo26n-pose.pt`
+- YOLO26n (`weights/pretrained/yolo26n.pt`)
+
+- YOLO26 treinado com database inicial: `runs/train/y26-1-db-1/weights/best.pt`
+Notação usada: y26 é yolo26n-pose; -1 significa 1o treino realizado; db-1 significa que foi treinado como 1o database que criei
+- YOLO11 treinado com database inicial: `runs/train/y11-1-db-1/weights/best.pt`
+
+
+
+## Treinar
+
+O treino principal está em [train_pose.py](./train_pose.py):
+
+```powershell
+python .\src\yolo\train_pose.py
+```
 
 Por omissão, usa:
 
 - Dataset: `data/dataset/data.yaml`
-- Pesos iniciais: `yolo11n-pose.pt` na raiz do projeto
-- Parâmetros de treino: os mesmos definidos no treino de pose anterior
-- Resultados: `runs/pose/`
+- Pesos iniciais: `weights/pretrained/yolo26n-pose.pt`
+- Resultados: `runs/train/y26-1-db-1/`
+
+Antes de executar, seleciona diretamente no início de `train_pose.py` o
+dataset (`DATA_YAML`), o ficheiro do modelo base (`MODEL_PATH`) e o nome da
+pasta da execução (`RUN_NAME`). Por exemplo, para treinar com YOLO11, aponta
+`MODEL_PATH` para `weights/pretrained/yolo11n-pose.pt` e escolhe um nome como
+`y11-1-db-1`. Se a pasta já existir, o script termina sem iniciar o treino nem
+substituir resultados. No fim, imprime o caminho exato para `best.pt` e
+`last.pt`.
+
+O script avançado [train_h_pose (1).py](<./Lixo%20IA/train_h_pose%20%281%29.py>)
+também guarda treinos em `runs/train/` e previsões em `runs/predict/`. Para
+escolher o nome de cada execução:
+
+```powershell
+python ".\src\yolo\Lixo IA\train_h_pose (1).py" train --dataset data/dataset --name y11-1-db-1
+python ".\src\yolo\Lixo IA\train_h_pose (1).py" predict --weights runs/train/y26-1-db-1/weights/best.pt --source foto.jpg --name teste-foto
+```
 
 ## Usar outro dataset
 
-No início de `train_pose.py`, altera `DATA_YAML` para o caminho do YAML desse
-dataset. Por exemplo:
+Em `train_pose.py`, altera `DATA_YAML` para o YAML do dataset. O YAML tem de
+descrever os caminhos de `train`, `val` e, se existir, `test`, os nomes das
+classes e a configuração de pose (`kpt_shape` e `flip_idx`). Os dados têm de
+estar no formato YOLO-Pose; os scripts não preparam nem modificam o dataset.
 
-```python
-DATA_YAML = ROOT / "data" / "outro_dataset" / "data.yaml"
-```
+## Inferência
 
-O YAML tem de descrever os caminhos de `train`, `val` e, se existir, `test`,
-além dos nomes das classes e da configuração de pose (`kpt_shape` e `flip_idx`).
-As imagens e labels também têm de estar no formato YOLO-Pose compatível com o
-modelo. O script não prepara nem modifica o dataset.
-
-## Preservar e comparar treinos
-
-Cada execução é guardada numa pasta própria dentro de `runs/pose/`. O script
-usa `exist_ok=False`: se `h12` já existir, o Ultralytics cria uma nova pasta
-numerada em vez de substituir a anterior. Assim, os pesos antigos continuam
-disponíveis para comparar ou usar mais tarde.
-
-Em cada pasta do treino:
-
-- `weights/best.pt` contém os pesos com melhor resultado na validação;
-- `weights/last.pt` contém os pesos da última época.
-
-O script imprime os caminhos exatos no fim do treino. Para comparar de forma
-justa, mantém iguais o dataset e os parâmetros e altera apenas o que queres
-testar. Não apagues as pastas antigas de `runs/pose/`.
-
-Para fazer inferência, seleciona o `best.pt` da execução pretendida como os
-pesos do modelo, por exemplo no comando YOLO:
+Escolhe os pesos da experiência pretendida:
 
 ```powershell
-yolo predict model="runs/pose/h12/weights/best.pt" source="C:\caminho\para\a_foto.jpg"
+yolo predict model="runs\train\<experiencia>\weights\best.pt" source="C:\caminho\para\a_foto.jpg" project="runs\predict" name="foto"
 ```
 
-## Instruções anteriores
+Para a webcam:
 
-Treinar diretamente no terminal:
-
-```bash
-cd ~\dev\helipad-pose 
-
-yolo pose train model=yolo11n-pose.pt data=dataset/data.yaml epochs=150 imgsz=640 batch=16 patience=30 fliplr=0.5 flipud=0 degrees=0 project=runs/pose name=h12
+```powershell
+yolo predict model="runs\train\<experiencia>\weights\best.pt" source=0 show=True project="runs\predict" name="webcam"
 ```
 
-Para correr o modelo com os pesos best.pt:
-
-'code' yolo predict model="C:\Users\rodri\dev\helipad-pose\runs\pose\runs\pose\h12\weights\best.pt" source="C:\caminho\para\a_foto.jpg"
-
-Para correr em tempo real na webcam:
-
-```bash
-cd ~\dev\helipad-pose 
-yolo predict model="C:\Users\rodri\dev\helipad-pose\runs\pose\runs\pose\h12\weights\best.pt" source=0 show=True
-```
+Substitui `<experiencia>` pelo nome da pasta do treino cujos pesos queres usar.
+`project` define a pasta-base dos resultados e `name` identifica a subpasta
+da execução; por exemplo, os resultados da imagem ficam em
+`runs\predict\foto`.

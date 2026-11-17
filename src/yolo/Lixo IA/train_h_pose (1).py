@@ -6,11 +6,11 @@ train_h_pose.py — Treino e avaliação de YOLO11n-pose para os 12 vértices de
 
 Subcomandos (todos com --help):
 
-    python train_h_pose.py validate --dataset dataset
-    python train_h_pose.py train    --dataset dataset --epochs 150
-    python train_h_pose.py eval     --weights runs/pose/h12/weights/best.pt --dataset dataset --split val
-    python train_h_pose.py predict  --weights runs/pose/h12/weights/best.pt --source foto.jpg
-    python train_h_pose.py split    --raw raw --out dataset --seed 0     (só para imagens REAIS)
+    python train_h_pose.py validate --dataset data/dataset
+    python train_h_pose.py train    --dataset data/dataset --epochs 150
+    python train_h_pose.py eval     --weights runs/train/y11-1-db-1/weights/best.pt --dataset data/dataset --split val
+    python train_h_pose.py predict  --weights runs/train/y11-1-db-1/weights/best.pt --source foto.jpg
+    python train_h_pose.py split    --raw raw --out data/dataset --seed 0 (só para imagens REAIS)
 
 Dependências:  pip install ultralytics pyyaml numpy
 O `eval` com pose 3D usa funções do gen_synthetic.py (mesma pasta) e o meta.json.
@@ -132,6 +132,8 @@ from pathlib import Path
 
 import numpy as np
 import yaml
+
+ROOT = Path(__file__).resolve().parents[3]
 
 # ----------------------------------------------------------------------------
 # Constantes do problema (ver secção 1.3 do cabeçalho)
@@ -346,7 +348,7 @@ def cmd_train(args):
         seed=args.seed,
         project=args.project,
         name=args.name,
-        exist_ok=True,
+        exist_ok=False,
         # --- augmentations (ver 1.4): conservadoras por causa da simetria do H
         fliplr=0.5,               # ok porque o H é simétrico e FLIP_IDX está definido
         flipud=0.0,               # NUNCA: o Ultralytics não aplica flip_idx na vertical
@@ -367,7 +369,10 @@ def cmd_train(args):
     if args.cache:
         kwargs["cache"] = True            # imagens em RAM: mais rápido, usa memória
     model.train(**kwargs)
-    print(f"Pesos em: {Path(args.project) / args.name / 'weights' / 'best.pt'}")
+    run_dir = Path(model.trainer.save_dir)
+    print(f"Treino guardado em: {run_dir}")
+    print(f"Melhores pesos: {run_dir / 'weights' / 'best.pt'}")
+    print(f"Últimos pesos: {run_dir / 'weights' / 'last.pt'}")
 
 
 # ----------------------------------------------------------------------------
@@ -522,8 +527,8 @@ def cmd_predict(args):
 
     model = YOLO(args.weights)
     model.predict(source=args.source, imgsz=args.imgsz, conf=args.conf, save=True,
-                  project=args.project, name="predict", exist_ok=True)
-    print(f"Resultados em {Path(args.project) / 'predict'}")
+                  project=args.project, name=args.name, exist_ok=False)
+    print(f"Resultados em {model.predictor.save_dir}")
 
 
 # ----------------------------------------------------------------------------
@@ -532,7 +537,7 @@ def build_parser():
     sub = p.add_subparsers(dest="cmd", required=True)
 
     v = sub.add_parser("validate", help="verifica labels do dataset")
-    v.add_argument("--dataset", default="dataset")
+    v.add_argument("--dataset", default=str(ROOT / "data" / "dataset"))
     v.set_defaults(func=cmd_validate)
 
     s = sub.add_parser("split", help="divide imagens reais em train/val/test por sessão")
@@ -545,8 +550,11 @@ def build_parser():
     s.set_defaults(func=cmd_split)
 
     t = sub.add_parser("train", help="treina o modelo")
-    t.add_argument("--dataset", default="dataset")
-    t.add_argument("--model", default="yolo11n-pose.pt")
+    t.add_argument("--dataset", default=str(ROOT / "data" / "dataset"))
+    t.add_argument(
+        "--model",
+        default=str(ROOT / "weights" / "pretrained" / "yolo11n-pose.pt"),
+    )
     t.add_argument("--epochs", type=int, default=150)
     t.add_argument("--patience", type=int, default=30)
     t.add_argument("--imgsz", type=int, default=640)
@@ -557,13 +565,13 @@ def build_parser():
     t.add_argument("--workers", type=int, default=None, help="processos de leitura de dados (Windows: 0-4)")
     t.add_argument("--cache", action="store_true", help="guarda as imagens em RAM")
     t.add_argument("--resume", default=None, help="caminho para um last.pt para continuar um treino")
-    t.add_argument("--project", default="runs/pose")
-    t.add_argument("--name", default="h12")
+    t.add_argument("--project", default=str(ROOT / "runs" / "train"))
+    t.add_argument("--name", default="y11-1-db-1")
     t.set_defaults(func=cmd_train)
 
     e = sub.add_parser("eval", help="mAP, erro por keypoint (px) e erro da pose 3D (m, graus)")
     e.add_argument("--weights", required=True)
-    e.add_argument("--dataset", default="dataset")
+    e.add_argument("--dataset", default=str(ROOT / "data" / "dataset"))
     e.add_argument("--split", default="val", choices=SPLITS)
     e.add_argument("--imgsz", type=int, default=640)
     e.add_argument("--conf", type=float, default=0.25)
@@ -579,7 +587,8 @@ def build_parser():
     r.add_argument("--source", required=True)
     r.add_argument("--imgsz", type=int, default=640)
     r.add_argument("--conf", type=float, default=0.25)
-    r.add_argument("--project", default="runs/pose")
+    r.add_argument("--project", default=str(ROOT / "runs" / "predict"))
+    r.add_argument("--name", default="predict")
     r.set_defaults(func=cmd_predict)
     return p
 
