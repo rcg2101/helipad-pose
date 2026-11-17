@@ -31,8 +31,15 @@ def main() -> None:
         exist_ok=False,
         epochs=150,
         patience=30,
-        imgsz=1280, # estava 640
-        batch=4, # estava 16
+        #imgsz=1280, # estava 640
+        #batch=4, # estava 16
+        # DGX ------
+        imgsz=1280,
+        batch=16,
+        device=0,
+        workers=8,
+        amp=True,
+        # DGX ------
         seed=0,
         fliplr=0.5,
         flipud=0.0,
