@@ -2,6 +2,7 @@ data/*
 !data/README.md
 data/dataset/*
 !data/dataset/data.yaml
+!data/dataset/generate_dataset_v5
 data/dataset_v2/*
 !data/dataset_v2/data.yaml
 runs/*
