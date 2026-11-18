@@ -8,7 +8,7 @@ ROOT = Path(__file__).resolve().parents[2]
 DATA_YAML = ROOT / "data" / "dataset_v2" / "data.yaml" # path para o yaml
 PROJECT = ROOT / "runs" / "train"                      # path para salvar os resultados do treino
 MODEL_PATH = ROOT / "weights" / "pretrained" / "yolo26n-pose.pt" # pesos base
-RUN_NAME = "y26n-2-db-2" # nome do run: modelo-num-basededados-num
+RUN_NAME = "y26n-5-db-2" # nome do run: modelo-num-basededados-num
 
 def main() -> None:
     if not DATA_YAML.is_file():
@@ -34,9 +34,9 @@ def main() -> None:
         #imgsz=1280, # estava 640
         #batch=4, # estava 16
         # DGX ------
-        imgsz=1280,
+        imgsz=640,
         batch=16,
-        device=0,
+        device=5,
         workers=8,
         amp=True,
         # DGX ------
