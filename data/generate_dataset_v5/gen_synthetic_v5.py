@@ -27,8 +27,8 @@ import numpy as np
 
 # =============================== SETTINGS ====================================
 MODE = "generate"                 # "generate" = gera + verifica | "verify" = só verifica OUT_DIR
-OUT_DIR, SPLIT = Path(__file__).resolve().parent.parent / "dataset_v3", "train" # guardar no diretório anterior ao script
-N_IMAGES, SESSIONS, SEED = 7000, 35, 0
+OUT_DIR, SPLIT = Path(__file__).resolve().parent.parent / "dataset_v5", "train" # guardar no diretório anterior ao script
+N_IMAGES, SESSIONS, SEED = 7000, 35, 1
 BACKGROUNDS = Path(__file__).resolve().parent / "backgrounds"    # pasta com fotos (subpastas ok: relva/, asfalto/, interior/...), SEM helipad nem H
 BG_PHOTO_PROB = 0.8               # com fotos, fração de imagens que as usa
 BG_KINDS = dict(noise=0.35, grass=0.25, asphalt=0.25, text=0.15)   # fundos procedurais (pesos)
@@ -38,7 +38,7 @@ WIDTH, HEIGHT, HFOV = 1280, 720, 70.0   # câmara (K provisória pelo FOV horizo
 CALIB = None                      # ou "calib.npz" (K, dist, size) em vez de HFOV
 X_CM = 1.65                       # unidade x do alvo (cm)
 
-ROLL_MAX, PITCH_MAX, YAW_MAX = 35.0, 35.0, 80.0   # graus (amostragem Latin hypercube, uniforme)
+ROLL_MAX, PITCH_MAX, YAW_MAX = 55.0, 55.0, 80.0   # graus (amostragem Latin hypercube, uniforme), usei 35 35 80 pq se aplica a uavs, mas quero aumentar para mais
 TILT_CAP = 65.0                   # inclinação total máxima da câmara
 DMIN, DMAX, D_LOG = 0.15, 6.5, True   # distância ao centro do H (m); D_LOG: uniforme em log (mais perto)
 MIN_BOX_PX = 25.0                 # lado mínimo da caixa do anel (px)
